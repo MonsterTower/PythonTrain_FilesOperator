@@ -1,15 +1,16 @@
 import os
 import time
+import tracemalloc
 import multiprocessing as mp
 
 # 根目录,这个目录下放着的是DRIAMS打头的文件夹
-rootDir = "D:/Work/PythonProject/FilesOperator/DatasTestCopy"
+rootDir = "D:/Work/PythonProject/DatasTestCopy"
 # 最多并发线程数，留一个逻辑核心给系统，避免windows卡顿
 processesCount = max(1, mp.cpu_count() - 1)
 # 开启单进程模式
 isSingleProcess = False
 # 开启计时器 可以拿来看看单进程和多进程的性能开销区别
-isTimerEnable = True
+isDataCheckerEnable = True
 
 def ProcessFile(path, mode):
     # 利用with这个上下文管理器来自动管理f的生命周期
@@ -108,8 +109,9 @@ def CollectFiles():
     return tasks
 
 if __name__ == "__main__":
-    if(isTimerEnable):
+    if(isDataCheckerEnable):
         start_time = time.time()
+        tracemalloc.start()
 
     files = CollectFiles()
     if (isSingleProcess):
@@ -123,6 +125,11 @@ if __name__ == "__main__":
             #这里ProcessFile的参数列表恰好能对应上files的元组，可以自动依次匹配地传参
             pool.starmap(ProcessFile, files)
 
-    if(isTimerEnable):
+    if(isDataCheckerEnable):
         end_time = time.time()
+        snapshot = tracemalloc.take_snapshot()
+        top_stats = snapshot.statistics('lineno')
+        print("[Top 10 内存使用]")
+        for stat in top_stats[:10]:
+            print(stat)
         print(f"程序运行耗时: {(end_time - start_time):.4f} 秒")
